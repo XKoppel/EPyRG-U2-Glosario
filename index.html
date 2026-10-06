@@ -1,0 +1,921 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Glosario · Unidad 1 — Ética profesional y responsabilidad global</title>
+ 
+<!-- Tipografías clásicas: Cinzel (títulos) + EB Garamond (definiciones) -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=EB+Garamond:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+ 
+<style>
+/* ===================================================================
+   PALETA Y VARIABLES (temática Grecia clásica)
+   =================================================================== */
+:root{
+  --marmol:        #f4f1e9;   /* mármol blanco roto            */
+  --marmol-sombra: #e2ddd1;   /* gris mármol claro            */
+  --marmol-veta:   #d8d2c4;   /* veta sutil del mármol        */
+  --bronce:        #a8863e;   /* oro / bronce envejecido      */
+  --bronce-claro:  #c9a94f;   /* bronce claro (degradado)     */
+  --lapis:         #2c4a87;   /* azul lapislázuli             */
+  --terracota:     #b0442c;   /* rojo terracota               */
+  --grafito:       #332f28;   /* texto principal              */
+  --grafito-suave: #5c564a;   /* texto secundario             */
+}
+ 
+/* ===================================================================
+   BASE
+   =================================================================== */
+*{ box-sizing:border-box; margin:0; padding:0; }
+ 
+html,body{ height:100%; }
+ 
+body{
+  min-height:100dvh;
+  overflow:hidden;                 /* las cartas salen de pantalla sin generar scroll */
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:clamp(1rem, 3vh, 2rem);
+  padding:clamp(1rem, 4vw, 2.5rem) 1rem 6.5rem; /* espacio inferior para el botón fijo */
+  color:var(--grafito);
+  font-family:'EB Garamond', Georgia, serif;
+ 
+  /* Fondo mármol: veteado suave con gradientes superpuestos */
+  background-color:var(--marmol);
+  background-image:
+    radial-gradient(ellipse 80% 60% at 15% 10%, rgba(255,255,255,.6), transparent 60%),
+    radial-gradient(ellipse 70% 50% at 85% 90%, rgba(216,210,196,.55), transparent 60%),
+    linear-gradient(120deg, transparent 0 45%, rgba(200,193,176,.18) 46% 47%, transparent 48%),
+    linear-gradient(200deg, transparent 0 62%, rgba(200,193,176,.14) 63% 64%, transparent 65%);
+}
+ 
+/* ===================================================================
+   ENCABEZADO
+   =================================================================== */
+header{ text-align:center; max-width:40rem; }
+ 
+header .kicker{
+  font-family:'Cinzel', serif;
+  font-size:clamp(.62rem,2.4vw,.78rem);
+  letter-spacing:.22em;
+  color:var(--bronce);
+  font-weight:600;
+}
+header h1{
+  font-family:'Cinzel', serif;
+  font-weight:700;
+  font-size:clamp(1.15rem, 4.6vw, 1.9rem);
+  line-height:1.2;
+  color:var(--grafito);
+  margin-top:.35rem;
+}
+/* filete de bronce con un pequeño rombo central, a modo de separador clásico */
+header .filete{
+  display:flex; align-items:center; justify-content:center; gap:.6rem;
+  margin:.7rem auto 0; max-width:16rem;
+}
+header .filete::before,
+header .filete::after{
+  content:""; height:1px; flex:1;
+  background:linear-gradient(90deg, transparent, var(--bronce), transparent);
+}
+header .filete i{
+  width:7px; height:7px; transform:rotate(45deg);
+  background:var(--bronce);
+}
+ 
+/* ===================================================================
+   ESCENA DE LA TARJETA (naipe: pila + reparto/descarte + volteo 3D)
+   =================================================================== */
+.escena{
+  width:min(92vw, 30rem);
+  height:min(64vh, 22rem);
+  position:relative;
+}
+ 
+/* Pila de cartas al fondo (simula el mazo) */
+.pila{
+  position:absolute; inset:0;
+  border-radius:6px;
+  background:linear-gradient(160deg, #fbf8f0 0%, var(--marmol) 60%, var(--marmol-sombra) 100%);
+  border:1px solid rgba(168,134,62,.3);
+  box-shadow:0 10px 26px -16px rgba(51,47,40,.45);
+}
+.pila-1{ transform:translate(5px, 9px)  rotate(1.8deg);  }
+.pila-2{ transform:translate(-7px, 17px) rotate(-2.3deg); opacity:.9; }
+ 
+/* Envoltorio del naipe: maneja el reparto (caída) y el descarte (salida).
+   Lleva la perspectiva para que el volteo 3D de la tarjeta funcione. */
+.tarjeta-wrap{
+  position:absolute; inset:0;
+  perspective:1400px;
+}
+.tarjeta-wrap.repartiendo{ animation:repartir .55s cubic-bezier(.2,.8,.3,1) both; } /* 1ª aparición: cae desde arriba */
+.tarjeta-wrap.revelando{ animation:revelar .42s cubic-bezier(.2,.8,.3,1) both; }     /* siguiente: sube desde el mazo */
+.tarjeta-wrap.saliendo{ animation:descartar .45s cubic-bezier(.55,0,.85,.4) both;
+                        pointer-events:none; }
+ 
+/* La tarjeta que gira (mantiene el contexto 3D intacto) */
+.tarjeta{
+  position:absolute; inset:0;
+  cursor:pointer;
+  transform-style:preserve-3d;
+  -webkit-transform-style:preserve-3d;
+  transition:transform .7s cubic-bezier(.2,.7,.2,1);  /* giro suave */
+  border-radius:6px;
+  outline:none;
+}
+.tarjeta.volteada{ transform:rotateY(180deg); }
+ 
+/* Reparto: la carta cae desde arriba y se asienta sobre la pila */
+@keyframes repartir{
+  from{ opacity:0; transform:translateY(-130vh) rotate(-4deg); }
+  70% { opacity:1; }
+  to  { opacity:1; transform:translateY(0) rotate(0); }
+}
+/* Descarte: la carta se desliza hacia arriba y sale por el borde superior */
+@keyframes descartar{
+  from{ opacity:1; transform:translateY(0) rotate(0); }
+  to  { opacity:1; transform:translateY(-130vh) rotate(-5deg); }
+}
+/* Revelar: la carta de abajo del mazo sube a la posición activa (no cae desde arriba) */
+@keyframes revelar{
+  from{ opacity:.85; transform:translate(5px, 9px) scale(.98) rotate(1.8deg); }
+  to  { opacity:1;   transform:translate(0,0) scale(1) rotate(0); }
+}
+ 
+/* Anverso y reverso comparten estilo de "loseta de mármol" */
+.cara{
+  position:absolute; inset:0;
+  backface-visibility:hidden;         /* oculta la cara trasera */
+  -webkit-backface-visibility:hidden;
+  border-radius:6px;
+  display:flex; flex-direction:column;
+  align-items:center; justify-content:center;
+  text-align:center;
+  padding:clamp(1.4rem, 5vw, 2.4rem);
+  overflow:hidden;
+ 
+  background:
+    linear-gradient(160deg, #fffdf8 0%, var(--marmol) 55%, var(--marmol-sombra) 100%);
+  border:1px solid rgba(168,134,62,.35);
+  /* Sombra suave para dar profundidad al mármol */
+  box-shadow:
+    0 1px 0 rgba(255,255,255,.9) inset,
+    0 18px 40px -18px rgba(51,47,40,.45),
+    0 4px 12px -6px rgba(51,47,40,.3);
+}
+ 
+/* Cenefa de grecas (meandro) en la parte superior e inferior de cada cara.
+   El patrón es un SVG embebido que se repite horizontalmente. */
+.cara::before,
+.cara::after{
+  content:"";
+  position:absolute; left:0; right:0; height:16px;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='32' height='16' viewBox='0 0 32 16'><path d='M0 13 L0 3 L13 3 L13 13 L4 13 L4 6 L10 6 L10 10 L7 10' fill='none' stroke='%23a8863e' stroke-width='1.4'/><path d='M16 13 L16 3 L29 3 L29 13 L20 13 L20 6 L26 6 L26 10 L23 10' fill='none' stroke='%23a8863e' stroke-width='1.4'/></svg>");
+  background-repeat:repeat-x;
+  background-size:auto 100%;
+  opacity:.7;
+}
+.cara::before{ top:12px; }
+.cara::after { bottom:12px; transform:scaleY(-1); }
+ 
+/* Estrías dóricas muy sutiles a los lados de cada cara */
+.cara{
+  background-image:
+    linear-gradient(160deg, #fffdf8 0%, var(--marmol) 55%, var(--marmol-sombra) 100%),
+    repeating-linear-gradient(90deg, rgba(168,134,62,.05) 0 2px, transparent 2px 9px);
+}
+ 
+/* --- Cara frontal: el TÉRMINO --- */
+.frente .etiqueta{
+  font-family:'Cinzel', serif;
+  font-size:.66rem; letter-spacing:.2em;
+  color:var(--bronce); font-weight:600;
+  margin-bottom:1rem;
+}
+.frente .termino{
+  font-family:'Cinzel', serif;
+  font-weight:600;
+  font-size:clamp(1.35rem, 6.2vw, 2.1rem);
+  line-height:1.25;
+  color:var(--grafito);
+}
+.frente .instruccion{
+  margin-top:1.2rem;
+  font-size:.95rem; font-style:italic;
+  color:var(--grafito-suave);
+}
+ 
+/* --- Cara trasera: la DEFINICIÓN (rotada para leerse correctamente) --- */
+.reverso{
+  transform:rotateY(180deg);
+  background:
+    linear-gradient(160deg, #fbfaf4 0%, var(--marmol) 60%, var(--marmol-sombra) 100%),
+    repeating-linear-gradient(90deg, rgba(168,134,62,.05) 0 2px, transparent 2px 9px);
+}
+.reverso .titulo{
+  font-family:'Cinzel', serif;
+  font-weight:600;
+  font-size:clamp(.95rem, 3.6vw, 1.15rem);
+  color:var(--lapis);
+  margin-bottom:.7rem;
+}
+.reverso .definicion{
+  font-size:clamp(1rem, 3.6vw, 1.18rem);
+  line-height:1.55;
+  color:var(--grafito);
+  max-width:26rem;
+}
+.reverso .instruccion{
+  margin-top:1.1rem;
+  font-size:.9rem; font-style:italic;
+  color:var(--terracota);
+}
+ 
+/* ===================================================================
+   CONTADOR DE PROGRESO
+   =================================================================== */
+.progreso{
+  position:fixed;
+  top:clamp(.9rem, 2.5vh, 1.5rem);
+  right:clamp(1rem, 3vw, 2rem);
+  z-index:10;
+  font-family:'Cinzel', serif;
+  font-size:.8rem; letter-spacing:.14em;
+  color:var(--grafito-suave);
+  min-height:1.2em;
+}
+.progreso b{ color:var(--bronce); font-weight:700; }
+ 
+/* ===================================================================
+   CONTROLES (esquina superior izquierda)
+   =================================================================== */
+.controles-juego{
+  position:fixed;
+  top:clamp(.9rem, 2.5vh, 1.5rem);
+  left:clamp(1rem, 3vw, 2rem);
+  z-index:10;
+  display:flex; flex-direction:column;
+  align-items:flex-start;
+  gap:.55rem;
+}
+.btn-nav{
+  font-family:'Cinzel', serif; font-weight:600;
+  letter-spacing:.12em; text-transform:uppercase;
+  color:var(--marmol);
+  background:linear-gradient(180deg, var(--bronce-claro), var(--bronce));
+  border:1px solid rgba(0,0,0,.3);
+  border-radius:999px;
+  cursor:pointer;
+  display:inline-flex; align-items:center; justify-content:center; gap:.5em;
+  box-shadow:0 6px 16px -6px rgba(51,47,40,.55), 0 1px 0 rgba(255,255,255,.35) inset;
+  transition:transform .15s ease, filter .15s ease, box-shadow .15s ease;
+}
+.btn-nav:hover{ filter:brightness(1.06); box-shadow:0 9px 20px -6px rgba(51,47,40,.6); }
+.btn-nav:active{ transform:translateY(1px); }
+.btn-nav:focus-visible{ outline:3px solid var(--lapis); outline-offset:2px; }
+.btn-nav:disabled{ opacity:.4; cursor:default; box-shadow:none; }
+.btn-nav:disabled:hover{ filter:none; }
+ 
+.btn-inicio{ font-size:clamp(.6rem, 2.1vw, .76rem); padding:.55em 1.05em; }
+.btn-inicio svg{ width:1.3em; height:1.3em; flex:none; }
+ 
+.btn-anterior{ padding:.5em; border-radius:50%; }
+.btn-anterior svg{ width:1.4em; height:1.4em; display:block; }
+ 
+/* ===================================================================
+   BOTÓN DE REINICIO (fijo en la parte inferior)
+   =================================================================== */
+.reinicio{
+  position:fixed; bottom:clamp(1rem,3.5vh,1.8rem); left:50%;
+  transform:translateX(-50%);
+  font-family:'Cinzel', serif; font-weight:600;
+  font-size:clamp(.72rem,2.6vw,.85rem); letter-spacing:.14em;
+  color:var(--marmol);
+  background:linear-gradient(180deg, var(--bronce-claro), var(--bronce));
+  border:1px solid rgba(51,47,40,.25);
+  border-radius:999px;
+  padding:.7rem 1.6rem;
+  cursor:pointer;
+  box-shadow:0 8px 20px -8px rgba(51,47,40,.6), 0 1px 0 rgba(255,255,255,.4) inset;
+  transition:transform .18s ease, box-shadow .18s ease, filter .18s ease;
+}
+.reinicio:hover{ filter:brightness(1.05); box-shadow:0 12px 26px -8px rgba(51,47,40,.65); }
+.reinicio:active{ transform:translateX(-50%) translateY(1px); }
+.reinicio:focus-visible{ outline:3px solid var(--lapis); outline-offset:2px; }
+ 
+/* Foco visible por accesibilidad al usar teclado sobre la tarjeta */
+.tarjeta:focus-visible{
+  outline:3px solid var(--lapis);
+  outline-offset:6px;
+  border-radius:8px;
+}
+ 
+/* ===================================================================
+   PORTADA: FACHADA DE TEMPLO (pantalla de inicio)
+   =================================================================== */
+.portada{
+  position:fixed; inset:0; z-index:50;
+  display:flex; align-items:center; justify-content:center;
+  padding:0;
+  overflow:hidden;
+  /* Cielo azul suave detrás del templo */
+  background:linear-gradient(180deg, #cfe6f4 0%, #b3d3ea 55%, #a6cbe6 100%);
+}
+.portada.oculta{ display:none; }
+ 
+/* Contenedor del templo: conserva la proporción y se limita por ancho y alto.
+   container-type habilita unidades cqw para escalar textos con el templo. */
+.templo{
+  position:relative;
+  flex:0 0 auto;
+  /* Mantiene la proporción real del templo (no se deforma).
+     Se ajusta al ancho o al alto disponible; puede quedar cielo alrededor. */
+  width:min(90vw, calc(84vh * 1.4159), 56rem);
+  aspect-ratio:640 / 452;
+  container-type:inline-size;
+  transform-origin:50% 63%;   /* origen del zoom: el interior del templo */
+  animation:introTemplo 1.2s cubic-bezier(.2,.65,.25,1) both;  /* entrada suave al cargar */
+}
+.templo-svg{
+  display:block; width:100%; height:100%;
+  filter:drop-shadow(0 10px 22px rgba(51,47,40,.18));
+}
+/* Al estirar el templo, conserva el grosor de las líneas (no se deforma el trazo) */
+.templo-svg *{ vector-effect:non-scaling-stroke; }
+ 
+/* Animación de "entrada al templo": la cámara avanza hacia el interior */
+.templo.entrando-templo{ animation:entrarTemplo .9s cubic-bezier(.55,.02,.9,.35) forwards; }
+@keyframes entrarTemplo{
+  from{ opacity:1; transform:scale(1);   }
+  55% { opacity:1;                        }
+  to  { opacity:0; transform:scale(6.5); }
+}
+ 
+/* Entrada suave del templo al cargar la página */
+@keyframes introTemplo{
+  from{ opacity:0; transform:scale(.94) translateY(14px); }
+  to  { opacity:1; transform:scale(1)   translateY(0);    }
+}
+/* Aparición suave (título y botón) */
+@keyframes aparecer{
+  from{ opacity:0; }
+  to  { opacity:1; }
+}
+ 
+/* Título GLOSARIO sobre el arquitrabe (banda encima de las columnas) */
+/* Marca (UNIDAD 1 + GLOSARIO) en la esquina superior derecha de la portada */
+.marca-portada{
+  position:absolute;
+  top:clamp(.9rem, 4vh, 2.4rem);
+  right:clamp(1.1rem, 4vw, 3rem);
+  z-index:5;
+  text-align:right;
+  pointer-events:none;
+  animation:aparecer .9s ease .55s both;   /* aparece tras el templo */
+}
+.marca-unidad{
+  font-family:'Cinzel', serif; font-weight:600;
+  text-transform:uppercase;
+  font-size:clamp(.62rem, 2vw, .95rem);
+  letter-spacing:.26em;
+  color:#5a4f31;
+  margin-bottom:.4em;
+}
+.marca-glosario{
+  font-family:'Cinzel', serif; font-weight:700;
+  text-transform:uppercase;
+  font-size:clamp(1.5rem, 6vw, 3.4rem);
+  letter-spacing:.08em; line-height:.95;
+  color:#342e18;
+  text-shadow:0 1px 0 rgba(255,255,255,.3);
+}
+ 
+/* Nombre de la asignatura en la esquina superior izquierda */
+.asignatura-portada{
+  position:absolute;
+  top:clamp(.9rem, 4vh, 2.4rem);
+  left:clamp(1.1rem, 4vw, 3rem);
+  z-index:5;
+  width:fit-content;
+  font-family:'Cinzel', serif; font-weight:600;
+  text-transform:uppercase;
+  font-size:clamp(.55rem, 1.8vw, .85rem);
+  letter-spacing:.2em; line-height:1.7;
+  color:#5a4f31;
+  pointer-events:none;
+  animation:aparecer .9s ease .5s both;
+}
+.asignatura-portada > div{ white-space:nowrap; }
+.asignatura-portada .conj{ text-align:left; }     /* la "Y" al inicio de la línea */
+ 
+/* Botón INICIAR a media altura, sobre el interior oscuro del templo */
+.iniciar{
+  position:absolute; left:50%; top:54%;
+  transform:translate(-50%,-50%);
+  font-family:'Cinzel', serif; font-weight:600;
+  font-size:clamp(.8rem, 3cqw, 1.4rem); letter-spacing:.16em;
+  text-transform:uppercase;
+  color:var(--marmol);
+  background:linear-gradient(180deg, var(--bronce-claro), var(--bronce));
+  border:1px solid rgba(0,0,0,.4);
+  border-radius:999px;
+  padding:.7em 1.9em;
+  cursor:pointer;
+  box-shadow:0 8px 22px -6px rgba(0,0,0,.65), 0 1px 0 rgba(255,255,255,.35) inset;
+  transition:transform .18s ease, box-shadow .18s ease, filter .18s ease;
+  animation:aparecer .9s ease .75s both;   /* aparece al final */
+}
+.iniciar:hover{ filter:brightness(1.08); box-shadow:0 12px 28px -6px rgba(0,0,0,.7); }
+.iniciar:active{ transform:translate(-50%,-50%) translateY(1px); }
+.iniciar:focus-visible{ outline:3px solid var(--bronce-claro); outline-offset:3px; }
+ 
+/* Velo oscuro que cubre la pantalla durante la "entrada al templo" */
+.velo{
+  position:fixed; inset:0; z-index:60;
+  background:#342e18; opacity:0; pointer-events:none;
+  transition:opacity .45s ease;
+}
+ 
+/* ===================================================================
+   RESPONSIVO
+   =================================================================== */
+@media (max-width:480px){
+  .escena{ height:min(60vh, 20rem); }
+  header .filete{ max-width:12rem; }
+}
+@media (min-width:1024px){
+  .escena{ width:32rem; height:22rem; }
+}
+ 
+/* Respeta la preferencia de menor movimiento */
+@media (prefers-reduced-motion:reduce){
+  .tarjeta,
+  .tarjeta-wrap.repartiendo, .tarjeta-wrap.revelando, .tarjeta-wrap.saliendo,
+  .templo, .marca-portada, .asignatura-portada, .iniciar,
+  .templo.entrando-templo, .velo{ transition:none; animation:none; }
+}
+</style>
+</head>
+<body>
+ 
+  <!-- ===================== PORTADA: FACHADA DE TEMPLO ===================== -->
+  <div class="portada" id="portada">
+ 
+    <!-- Marca en la esquina superior derecha -->
+    <div class="marca-portada">
+      <div class="marca-unidad">Unidad 2</div>
+      <div class="marca-glosario">Glosario</div>
+    </div>
+ 
+    <!-- Nombre de la asignatura en la esquina superior izquierda -->
+    <div class="asignatura-portada">
+      <div>Ética profesional</div>
+      <div class="conj">y</div>
+      <div>Responsabilidad global</div>
+    </div>
+ 
+    <div class="templo" id="templo">
+      <svg class="templo-svg" viewBox="78 4 640 452"
+           xmlns="http://www.w3.org/2000/svg"
+           role="img" aria-label="Fachada de un templo griego clásico">
+        <defs>
+          <!-- Columna jónica reutilizable (centrada en x=0) -->
+          <g id="col">
+            <!-- sombra de contacto en la base -->
+            <ellipse cx="0" cy="412" rx="33" ry="5.5" fill="url(#contact)"/>
+            <!-- basa -->
+            <rect x="-28" y="399" width="56" height="12" fill="url(#stoneV)" stroke="#5a4f31" stroke-width="2"/>
+            <rect x="-24" y="391" width="48" height="9"  fill="url(#stoneV)" stroke="#5a4f31" stroke-width="1.8"/>
+            <!-- fuste con volumen cilíndrico -->
+            <path d="M-22 214 L22 214 L20 391 L-20 391 Z" fill="url(#colGrad)" stroke="#5a4f31" stroke-width="1.6"/>
+            <!-- estrías (suaves) -->
+            <g stroke="#5a4f31" stroke-width="0.9" opacity="0.28">
+              <line x1="-14" y1="216" x2="-13"  y2="389"/>
+              <line x1="-7"  y1="216" x2="-6.5" y2="389"/>
+              <line x1="0"   y1="216" x2="0"    y2="389"/>
+              <line x1="7"   y1="216" x2="6.5"  y2="389"/>
+              <line x1="14"  y1="216" x2="13"   y2="389"/>
+            </g>
+            <!-- capitel jónico (volutas simplificadas) -->
+            <rect x="-26" y="205" width="52" height="6" fill="url(#stoneV)" stroke="#5a4f31" stroke-width="1.6"/>
+            <rect x="-22" y="197" width="44" height="9" fill="url(#stoneV)" stroke="#5a4f31" stroke-width="1.6"/>
+            <circle cx="-15" cy="201" r="5.5" fill="url(#stoneV)" stroke="#5a4f31" stroke-width="1.6"/>
+            <circle cx="-15" cy="201" r="1.6" fill="#5a4f31"/>
+            <circle cx="15"  cy="201" r="5.5" fill="url(#stoneV)" stroke="#5a4f31" stroke-width="1.6"/>
+            <circle cx="15"  cy="201" r="1.6" fill="#5a4f31"/>
+          </g>
+ 
+          <!-- Palmeta (ornamento clásico) -->
+          <g id="palmeta">
+            <path d="M0 0 C -3 -7 -9 -10 -15 -9 C -11 -16 -5 -20 0 -26 C 5 -20 11 -16 15 -9 C 9 -10 3 -7 0 0 Z"
+                  fill="#ecd085" stroke="#5a4f31" stroke-width="1.6"/>
+            <g stroke="#5a4f31" stroke-width="1" fill="none" opacity="0.7">
+              <path d="M0 -4 V -24"/>
+              <path d="M0 -7 C -5 -11 -8 -15 -9 -19"/>
+              <path d="M0 -7 C 5 -11 8 -15 9 -19"/>
+            </g>
+          </g>
+ 
+          <!-- Patrón de dentículos -->
+          <pattern id="denticulos" width="18" height="8" patternUnits="userSpaceOnUse">
+            <rect x="3" y="0" width="9" height="8" fill="#e6cd83" stroke="#5a4f31" stroke-width="0.7"/>
+          </pattern>
+ 
+          <!-- Degradados de volumen (paleta clara basada en #f6e3a1) -->
+          <!-- Columna cilíndrica: sombra dorada en los bordes, luz al centro -->
+          <linearGradient id="colGrad" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0"    stop-color="#d9bd6f"/>
+            <stop offset="0.16" stop-color="#efd692"/>
+            <stop offset="0.5"  stop-color="#fdf3c0"/>
+            <stop offset="0.84" stop-color="#efd692"/>
+            <stop offset="1"    stop-color="#d9bd6f"/>
+          </linearGradient>
+          <!-- Piedra: luz arriba, sombra suave abajo -->
+          <linearGradient id="stoneV" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#fbeeb2"/>
+            <stop offset="1" stop-color="#eed58b"/>
+          </linearGradient>
+          <!-- Frontón: degradado suave -->
+          <linearGradient id="pedGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#fbeeb2"/>
+            <stop offset="1" stop-color="#ecd085"/>
+          </linearGradient>
+          <!-- Interior: vignette suave (más oscuro al centro) -->
+          <radialGradient id="interiorGrad" cx="0.5" cy="0.42" r="0.85">
+            <stop offset="0"   stop-color="#221d0c"/>
+            <stop offset="0.7" stop-color="#2f2814"/>
+            <stop offset="1"   stop-color="#3f351a"/>
+          </radialGradient>
+          <!-- Sombra que se desvanece hacia abajo (contacto bajo el entablamento) -->
+          <linearGradient id="shadeDown" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#181405" stop-opacity="0.6"/>
+            <stop offset="1" stop-color="#181405" stop-opacity="0"/>
+          </linearGradient>
+          <!-- Sombra de contacto radial (base de columnas) -->
+          <radialGradient id="contact" cx="0.5" cy="0.5" r="0.5">
+            <stop offset="0" stop-color="#181405" stop-opacity="0.5"/>
+            <stop offset="1" stop-color="#181405" stop-opacity="0"/>
+          </radialGradient>
+        </defs>
+ 
+        <!-- INTERIOR OSCURO (cela) con vignette suave -->
+        <rect x="124" y="202" width="552" height="205" fill="url(#interiorGrad)"/>
+        <!-- sombra de contacto bajo el entablamento -->
+        <rect x="124" y="202" width="552" height="48" fill="url(#shadeDown)"/>
+ 
+        <!-- ESCALINATA (estilóbato) -->
+        <rect x="112" y="405" width="576" height="14" fill="url(#stoneV)" stroke="#5a4f31" stroke-width="2"/>
+        <rect x="98"  y="419" width="604" height="15" fill="url(#stoneV)" stroke="#5a4f31" stroke-width="2"/>
+        <rect x="84"  y="434" width="632" height="17" fill="url(#stoneV)" stroke="#5a4f31" stroke-width="2"/>
+ 
+        <!-- COLUMNAS -->
+        <use href="#col" x="198"/><use href="#col" x="279"/><use href="#col" x="360"/>
+        <use href="#col" x="441"/><use href="#col" x="522"/><use href="#col" x="603"/>
+ 
+        <!-- ENTABLAMENTO -->
+        <!-- arquitrabe: banda horizontal donde va el título, encima de las columnas -->
+        <rect x="120" y="176" width="560" height="27" fill="url(#stoneV)" stroke="#5a4f31" stroke-width="2"/>
+        <!-- friso -->
+        <rect x="118" y="158" width="564" height="18" fill="url(#stoneV)" stroke="#5a4f31" stroke-width="2"/>
+        <!-- dentículos -->
+        <rect x="120" y="159" width="560" height="8" fill="url(#denticulos)"/>
+        <!-- cornisa -->
+        <rect x="108" y="146" width="584" height="12" fill="url(#stoneV)" stroke="#5a4f31" stroke-width="2"/>
+        <!-- sombra suave de la cornisa sobre el arquitrabe -->
+        <rect x="120" y="176" width="560" height="7" fill="url(#shadeDown)" opacity="0.5"/>
+ 
+        <!-- FRONTÓN (pedimento triangular) -->
+        <path d="M104 146 L400 44 L696 146 Z" fill="url(#pedGrad)" stroke="#5a4f31" stroke-width="2.4" stroke-linejoin="round"/>
+        <path d="M120 145 L400 52 L680 145" fill="none" stroke="#5a4f31" stroke-width="1.3" opacity="0.65"/>
+        <!-- relieve central en el tímpano -->
+        <g transform="translate(400,132) scale(2.3)"><use href="#palmeta"/></g>
+        <circle cx="330" cy="120" r="4" fill="none" stroke="#5a4f31" stroke-width="1.2" opacity="0.6"/>
+        <circle cx="470" cy="120" r="4" fill="none" stroke="#5a4f31" stroke-width="1.2" opacity="0.6"/>
+        <!-- acroteras (remates) -->
+        <g transform="translate(400,44) scale(1.35)"><use href="#palmeta"/></g>
+        <g transform="translate(104,146) scale(1)"><use href="#palmeta"/></g>
+        <g transform="translate(696,146) scale(1)"><use href="#palmeta"/></g>
+      </svg>
+ 
+      <!-- Botón a media altura, sobre el interior del templo -->
+      <button class="iniciar" id="iniciar">Iniciar</button>
+    </div>
+  </div>
+ 
+  <!-- Velo de transición para la "entrada al templo" -->
+  <div class="velo" id="velo" aria-hidden="true"></div>
+ 
+  <!-- CONTADOR (esquina superior derecha) -->
+  <div class="progreso" id="progreso"></div>
+ 
+  <!-- Controles (esquina superior izquierda) -->
+  <div class="controles-juego">
+    <!-- Volver a la portada -->
+    <button class="btn-nav btn-inicio" id="btnInicio" title="Volver al inicio">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
+           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M12 3 L20.5 8 H3.5 Z"/>
+        <path d="M6 8.5 V17.5 M10 8.5 V17.5 M14 8.5 V17.5 M18 8.5 V17.5"/>
+        <path d="M3.5 17.5 H20.5 M2.5 20.5 H21.5"/>
+      </svg>
+      Inicio
+    </button>
+    <!-- Tarjeta anterior -->
+    <button class="btn-nav btn-anterior" id="btnAnterior"
+            title="Tarjeta anterior" aria-label="Tarjeta anterior">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"
+           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M9 7 L4 12 L9 17"/>
+        <path d="M4 12 H13 a6 6 0 0 1 6 6 V19"/>
+      </svg>
+    </button>
+  </div>
+ 
+  <!-- ESCENA + TARJETA (naipe) -->
+  <div class="escena" id="escena">
+    <!-- Pila del mazo al fondo -->
+    <div class="pila pila-2" aria-hidden="true"></div>
+    <div class="pila pila-1" aria-hidden="true"></div>
+    <!-- Envoltorio que reparte/descarta la carta -->
+    <div class="tarjeta-wrap" id="tarjeta-wrap">
+      <div class="tarjeta" id="tarjeta" tabindex="0" role="button"
+           aria-label="Tarjeta didáctica. Actívala para revelar la definición.">
+        <!-- Anverso: término -->
+        <div class="cara frente">
+          <div class="termino" id="termino">—</div>
+        </div>
+        <!-- Reverso: definición -->
+        <div class="cara reverso">
+          <div class="titulo" id="titulo-reverso">—</div>
+          <div class="definicion" id="definicion">—</div>
+        </div>
+      </div>
+    </div>
+  </div>
+ 
+  <!-- BOTÓN DE REINICIO -->
+  <button class="reinicio" id="reinicio">↻ Reiniciar</button>
+ 
+<script>
+/* ===================================================================
+   DATOS: 20 términos de la Unidad 2
+   =================================================================== */
+const TERMINOS = [
+  { termino:"Responsabilidad Social Corporativa (RSC)",
+    definicion:"Modelo de gestión empresarial que integra el respeto por los valores éticos, las personas, la comunidad y el medio ambiente en las operaciones de la compañía." },
+  { termino:"Desarrollo sostenible",
+    definicion:"Modelo de crecimiento que satisface las necesidades de la generación presente sin comprometer la capacidad de las generaciones futuras para satisfacer sus propias necesidades." },
+  { termino:"Logística verde",
+    definicion:"Conjunto de políticas y prácticas sostenibles diseñadas para reducir el impacto ambiental de las actividades de almacenamiento, transporte y distribución internacional." },
+  { termino:"Comercio justo",
+    definicion:"Movimiento global y modelo comercial que busca mayor equidad en el comercio internacional, garantizando condiciones laborales dignas y precios justos para los productores en países en desarrollo." },
+  { termino:"Huella de carbono",
+    definicion:"Volumen total de gases de efecto invernadero emitidos, directa o indirectamente, por las operaciones logísticas y comerciales de una organización a lo largo de su cadena de valor." },
+  { termino:"Trabajo forzoso",
+    definicion:"Todo trabajo o servicio exigido a un individuo bajo la amenaza de una pena y para el cual dicho individuo no se ofrece voluntariamente, tipificado como violación a los derechos fundamentales." },
+  { termino:"Trabajo infantil",
+    definicion:"Toda forma de explotación laboral que priva a los niños de su niñez, interfiere con su escolarización y es perjudicial para su desarrollo físico y psicológico, según la OIT." },
+  { termino:"Cadena de suministro sostenible",
+    definicion:"Gestión de los impactos ambientales, sociales y económicos, y fomento de buenas prácticas de gobernanza a lo largo del ciclo de vida de los bienes y servicios transfronterizos." },
+  { termino:"Soborno transnacional",
+    definicion:"Acto de ofrecer, prometer o entregar una ventaja financiera o de otra índole a un funcionario público extranjero para obtener o retener negocios en transacciones internacionales." },
+  { termino:"Cumplimiento normativo (compliance)",
+    definicion:"Sistema de políticas, procedimientos y controles internos adoptados por una organización para prevenir infracciones legales y mitigar riesgos éticos en sus operaciones." },
+  { termino:"Derechos humanos laborales",
+    definicion:"Conjunto de garantías fundamentales universales que protegen la dignidad de los trabajadores, incluyendo la libertad de asociación, la negociación colectiva y la no discriminación." },
+  { termino:"Economía circular",
+    definicion:"Modelo de producción y consumo que implica reutilizar, reparar, renovar y reciclar materiales e insumos de la cadena de suministro para minimizar la extracción de recursos y la generación de residuos." },
+  { termino:"Trazabilidad",
+    definicion:"Capacidad de rastrear el origen, el movimiento y las condiciones de producción de una mercancía a través de todas las etapas operativas y geográficas de la cadena de suministro." },
+  { termino:"Auditoría social",
+    definicion:"Evaluación sistemática e independiente de las instalaciones de los proveedores internacionales para verificar el cumplimiento de códigos de conducta laborales, éticos y de seguridad." },
+  { termino:"Objetivos de Desarrollo Sostenible (ODS)",
+    definicion:"Agenda global compuesta por 17 metas adoptadas por la Organización de las Naciones Unidas (ONU) para erradicar la pobreza, proteger el planeta y asegurar la prosperidad." },
+  { termino:"Greenwashing",
+    definicion:"Estrategia de marketing engañosa empleada por entidades comerciales para crear una percepción pública falsa o exagerada sobre su compromiso real con el medio ambiente." },
+  { termino:"Código de conducta para proveedores",
+    definicion:"Documento corporativo vinculante que establece las normas éticas, laborales y ambientales mínimas que una empresa importadora exige cumplir a sus socios comerciales." },
+  { termino:"Certificación ética",
+    definicion:"Aval otorgado por entidades auditoras independientes que garantiza que un producto internacional ha sido fabricado cumpliendo estándares rigurosos de sostenibilidad y respeto a los derechos humanos." },
+  { termino:"Responsabilidad extendida del productor",
+    definicion:"Principio de política ambiental que exige a los fabricantes asumir la gestión financiera y operativa del impacto de sus productos durante la fase de postconsumo." },
+  { termino:"Debida diligencia (due diligence)",
+    definicion:"Proceso continuo de gestión de riesgos mediante el cual las empresas identifican, previenen, mitigan y rinden cuentas sobre los impactos negativos de sus actividades comerciales internacionales." }
+];
+ 
+/* ===================================================================
+   REFERENCIAS AL DOM
+   =================================================================== */
+const $escena     = document.getElementById("escena");
+const $tarjetaWrap= document.getElementById("tarjeta-wrap");
+const $tarjeta    = document.getElementById("tarjeta");
+const $termino    = document.getElementById("termino");
+const $tituloRev  = document.getElementById("titulo-reverso");
+const $definicion = document.getElementById("definicion");
+const $progreso   = document.getElementById("progreso");
+const $reinicio   = document.getElementById("reinicio");
+const $portada    = document.getElementById("portada");
+const $iniciar    = document.getElementById("iniciar");
+const $templo     = document.getElementById("templo");
+const $velo       = document.getElementById("velo");
+const $btnInicio  = document.getElementById("btnInicio");
+const $btnAnterior= document.getElementById("btnAnterior");
+ 
+/* ===================================================================
+   ESTADO
+   =================================================================== */
+let mazo = [];        // copia barajada de TERMINOS
+let indice = 0;       // tarjeta actual
+let volteada = false; // ¿se muestra el reverso?
+let animando = false; // evita clics durante la transición de salida
+ 
+/* ===================================================================
+   UTILIDADES
+   =================================================================== */
+ 
+/* Baraja una copia del array con el algoritmo Fisher–Yates */
+function barajar(array){
+  const copia = array.slice();
+  for(let i = copia.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random() * (i + 1));
+    [copia[i], copia[j]] = [copia[j], copia[i]];
+  }
+  return copia;
+}
+ 
+/* Pinta en pantalla la tarjeta del índice actual (siempre por el anverso) */
+function pintarTarjeta(){
+  const item = mazo[indice];
+  $termino.textContent   = item.termino;
+  $tituloRev.textContent = item.termino;
+  $definicion.textContent = item.definicion;
+  $progreso.innerHTML = `<b>${indice + 1}</b> / ${mazo.length}`;
+  $btnAnterior.disabled = (indice === 0);   // no hay tarjeta previa en la primera
+}
+ 
+/* Muestra la carta con la animación indicada:
+   "repartiendo" = cae desde arriba (1ª aparición);
+   "revelando"   = sube desde el mazo (la de abajo pasa a ser la nueva). */
+function animarEntrada(clase){
+  $tarjetaWrap.classList.remove("saliendo", "repartiendo", "revelando");
+  void $tarjetaWrap.offsetWidth;            // reflow para reiniciar la animación
+  $tarjetaWrap.classList.add(clase);
+}
+ 
+/* Devuelve la tarjeta al anverso SIN animación de giro */
+function resetGiro(){
+  volteada = false;
+  $tarjeta.style.transition = "none";
+  $tarjeta.classList.remove("volteada");
+  void $tarjeta.offsetWidth;
+  $tarjeta.style.transition = "";
+}
+ 
+/* Reinicia el mazo: baraja y vuelve a la primera tarjeta */
+function reiniciar(){
+  mazo = barajar(TERMINOS);
+  indice = 0;
+  animando = false;
+ 
+  $escena.style.display = "";
+  resetGiro();
+  pintarTarjeta();
+  animarEntrada("repartiendo");        // 1ª aparición: cae desde arriba y se apila
+}
+ 
+/* Avanza a la siguiente tarjeta: descarta hacia arriba y reparte la siguiente.
+   Al pasar la última, reinicia el mazo con un orden nuevo (ciclo continuo). */
+function avanzar(){
+  animando = true;
+  $tarjetaWrap.classList.remove("repartiendo", "revelando");
+  $tarjetaWrap.classList.add("saliendo");    // descarta hacia arriba (fuera de pantalla)
+ 
+  setTimeout(() => {
+    indice++;
+    // Al completar el mazo, vuelve a barajar y arranca de nuevo
+    if(indice >= mazo.length){
+      mazo = barajar(TERMINOS);
+      indice = 0;
+    }
+    resetGiro();
+    pintarTarjeta();
+    animarEntrada("revelando");               // la de abajo del mazo pasa a ser la nueva
+    animando = false;
+  }, 450); // debe coincidir con la duración de "descartar" en CSS
+}
+ 
+/* ===================================================================
+   INTERACCIÓN CON LA TARJETA
+   - 1er clic  -> voltea al reverso (definición)
+   - 2do clic  -> avanza a la siguiente tarjeta
+   =================================================================== */
+function interactuar(){
+  if(animando) return;                  // ignora clics durante la transición
+  if(!volteada){
+    $tarjeta.classList.add("volteada"); // revela la definición
+    volteada = true;
+  }else{
+    avanzar();                          // pasa a la siguiente
+  }
+}
+ 
+$tarjeta.addEventListener("click", interactuar);
+ 
+/* Accesibilidad: activar con Enter o barra espaciadora */
+$tarjeta.addEventListener("keydown", (e) => {
+  if(e.key === "Enter" || e.key === " "){
+    e.preventDefault();
+    interactuar();
+  }
+});
+ 
+/* Botón de reinicio */
+$reinicio.addEventListener("click", reiniciar);
+ 
+/* ===================================================================
+   RETROCEDER A LA TARJETA ANTERIOR
+   =================================================================== */
+function retroceder(){
+  if(animando) return;
+ 
+  if(indice <= 0) return;   // ya en la primera tarjeta
+ 
+  animando = true;
+  $tarjetaWrap.classList.remove("repartiendo", "revelando");
+  $tarjetaWrap.classList.add("saliendo");
+ 
+  setTimeout(() => {
+    indice--;
+    resetGiro();
+    pintarTarjeta();
+    animarEntrada("revelando");
+    animando = false;
+  }, 450);
+}
+$btnAnterior.addEventListener("click", retroceder);
+ 
+/* ===================================================================
+   VOLVER A LA PORTADA
+   =================================================================== */
+function volverAPortada(){
+  reiniciar();                        // rebaraja el mazo y vuelve a la primera tarjeta
+  $portada.classList.remove("oculta");
+  $templo.classList.remove("entrando-templo");
+  // reinicia el velo por si quedó de una entrada previa
+  $velo.style.display = "";
+  $velo.style.opacity = "0";
+  // vuelve a lanzar la entrada suave del templo
+  $templo.style.animation = "none";
+  void $templo.offsetWidth;
+  $templo.style.animation = "";
+}
+$btnInicio.addEventListener("click", volverAPortada);
+ 
+/* ===================================================================
+   INICIO DESDE LA PORTADA (entrada al templo)
+   - El templo hace zoom hacia su interior y el velo oscurece la pantalla
+   - Al llegar al oscuro, se revelan las tarjetas con un zoom-in
+   =================================================================== */
+function iniciarJuego(){
+  const menosMovimiento =
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+ 
+  // Muestra el juego repartiendo la primera carta desde arriba
+  const mostrarJuego = () => {
+    $portada.classList.add("oculta");
+    animarEntrada("repartiendo");
+  };
+ 
+  if(menosMovimiento){          // sin animación: transición directa
+    mostrarJuego();
+    return;
+  }
+ 
+  $templo.classList.add("entrando-templo");   // zoom hacia el interior
+  $velo.style.opacity = "0.95";               // la pantalla se oscurece
+ 
+  // Al alcanzar el oscuro, revela las tarjetas y disipa el velo
+  setTimeout(() => {
+    mostrarJuego();
+    $velo.style.opacity = "0";
+  }, 470);
+ 
+  // Retira el velo del todo al terminar
+  setTimeout(() => { $velo.style.display = "none"; }, 1000);
+}
+$iniciar.addEventListener("click", iniciarJuego);
+ 
+/* ===================================================================
+   ARRANQUE
+   =================================================================== */
+reiniciar();
+</script>
+</body>
+</html>
